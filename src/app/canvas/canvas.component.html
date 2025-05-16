@@ -1,0 +1,26 @@
+<div class="flex-column align-center mx-24 height-100">
+    <svg class="svg-canvas" (click)="onSvgClick($event)">
+        @for (r of rects; track r) {
+            <rect 
+              [attr.x]="r.x"
+              [attr.y]="r.y"
+              [attr.width]="r.width"
+              [attr.height]="r.height"
+              [attr.fill]="r.fill"
+              [attr.stroke]="r.stroke"
+              [attr.stroke-width]="r.strokeWidth" />
+          }
+          
+        @for (p of polygons; track p) {
+            <polygon
+            [attr.points]="p.points"
+            [attr.fill]="p.fill"
+            [attr.stroke]="p.stroke"
+            [attr.stroke-width]="p.strokeWidth" />
+        }
+    </svg>
+    <div class="flex-row my-16">
+        <button [ngStyle]="{'background-color': addingRectangle ? 'red' : 'white' }" (click)="adding('rectangle')">Adicionar Retângulo</button>
+        <button [ngStyle]="{'background-color': addingStar ? 'red' : 'white' }" (click)="adding('star')">Adicionar Estrela</button>
+    </div>
+</div>
