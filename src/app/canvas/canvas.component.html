@@ -1,26 +1,51 @@
-<div class="flex-column align-center mx-24 height-100">
-    <svg class="svg-canvas" (click)="onSvgClick($event)">
-        @for (r of rects; track r) {
-            <rect 
-              [attr.x]="r.x"
-              [attr.y]="r.y"
-              [attr.width]="r.width"
-              [attr.height]="r.height"
-              [attr.fill]="r.fill"
-              [attr.stroke]="r.stroke"
-              [attr.stroke-width]="r.strokeWidth" />
-          }
-          
-        @for (p of polygons; track p) {
-            <polygon
-            [attr.points]="p.points"
-            [attr.fill]="p.fill"
-            [attr.stroke]="p.stroke"
-            [attr.stroke-width]="p.strokeWidth" />
-        }
-    </svg>
-    <div class="flex-row my-16">
-        <button [ngStyle]="{'background-color': addingRectangle ? 'red' : 'white' }" (click)="adding('rectangle')">Adicionar Retângulo</button>
-        <button [ngStyle]="{'background-color': addingStar ? 'red' : 'white' }" (click)="adding('star')">Adicionar Estrela</button>
+<div class="flex-column height-100">
+    <div class="flex-row height-100">
+        <div class="flex-column align-center mx-24 width-100 height-100">
+            <svg class="svg-canvas" (click)="onSvgClick($event)">
+                @for (s of shapes; track s) {
+                    @if (s.type == 'rectangle') {
+                        <rect 
+                        [attr.x]="s.x"
+                        [attr.y]="s.y"
+                        [attr.rx]="s.rx"
+                        [attr.ry]="s.ry"
+                        [attr.width]="s.width"
+                        [attr.height]="s.height"
+                        [attr.fill]="s.fill"
+                        [attr.stroke]="s.stroke"
+                        [attr.stroke-width]="s.strokeWidth" />
+                    } @else {
+                        <polygon
+                        [attr.points]="s.points"
+                        [attr.fill]="s.fill"
+                        [attr.stroke]="s.stroke"
+                        [attr.stroke-width]="s.strokeWidth" />
+                    }
+                }
+            </svg>
+        </div>
+        <div class="flex-column ml-auto mr-16">
+            <form [formGroup]="form" class="flex-column">
+                @if (shapeType() == 'rectangle') {
+                  <label>Slider do Retângulo</label>
+                  <input type="range" formControlName="roundControl" min="0" max="50"/>
+                  <span>{{ form.value.roundControl }}</span>
+                } @else if (shapeType() == 'star'){
+                  <div class="flex-row">
+                    <label>Número de Pontas</label>
+                    <input type="number" formControlName="starPoints" min="3" max="20" />
+                  </div>              
+                  <label>Slider da Estrela</label>
+                  <input type="range" formControlName="starSlider" min="0" [max]="50" />
+                  <span>{{ form.value.starSlider }}</span>
+                } @else {
+                  <p>Selecione uma forma para começar.</p>
+                }
+            </form>
+        </div>
+    </div>
+    <div class="flex-row my-16 justify-center">
+        <button [ngStyle]="{'background-color': addingRectangle ? 'red' : 'white' }" (click)="addingShape('rectangle')">Adicionar Retângulo</button>
+        <button [ngStyle]="{'background-color': addingStar ? 'red' : 'white' }" (click)="addingShape('star')">Adicionar Estrela</button>
     </div>
 </div>

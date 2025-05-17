@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CanvasComponent } from './canvas.component';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 
 describe('CanvasComponent', () => {
   let component: CanvasComponent;
@@ -8,7 +10,8 @@ describe('CanvasComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CanvasComponent]
+      imports: [CanvasComponent, CommonModule, ReactiveFormsModule],
+      providers: [FormBuilder],
     })
     .compileComponents();
 
