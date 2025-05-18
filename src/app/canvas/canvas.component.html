@@ -13,13 +13,15 @@
                         [attr.height]="s.height"
                         [attr.fill]="s.fill"
                         [attr.stroke]="s.stroke"
-                        [attr.stroke-width]="s.strokeWidth" />
+                        [attr.stroke-width]="s.strokeWidth" 
+                        (click)="onShapeClicked(s)"/>
                     } @else {
                         <polygon
                         [attr.points]="s.points"
                         [attr.fill]="s.fill"
                         [attr.stroke]="s.stroke"
-                        [attr.stroke-width]="s.strokeWidth" />
+                        [attr.stroke-width]="s.strokeWidth"
+                        (click)="onShapeClicked(s)"/>
                     }
                 }
             </svg>

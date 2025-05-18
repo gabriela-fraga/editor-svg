@@ -18,7 +18,7 @@ export class CanvasComponent {
   shapes: Shape[] = [];
   addingRectangle = false;
   addingStar = false;
-  shapeType = signal<'' | 'rectangle' | 'star'>('');
+  shapeType = signal<string>('');
   form: FormGroup;
   currentShape: Shape = {
     type: '',
@@ -165,6 +165,11 @@ export class CanvasComponent {
       this.shapeType.set('star');
       this.addStar(cursorpt);
     }
+  }
+
+  onShapeClicked(clickedShape: Shape) {
+    this.currentShape = clickedShape;
+    this.shapeType.set(this.currentShape.type);
   }
 
   resetShape() {
