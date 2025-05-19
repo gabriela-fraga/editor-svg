@@ -1,3 +1,5 @@
+import { Point } from "./canvas.component";
+
 export interface Shape {
   type: string;
   fill: string;
@@ -9,5 +11,5 @@ export interface Shape {
   ry?: number;
   width?: number;
   height?: number;
-  points?: string;
+  points?: Point[];
 }

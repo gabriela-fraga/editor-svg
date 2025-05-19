@@ -1,7 +1,7 @@
 <div class="flex-column height-100">
     <div class="flex-row height-100">
         <div class="flex-column align-center mx-24 width-100 height-100">
-            <svg class="svg-canvas" (click)="onSvgClick($event)">
+            <svg class="svg-canvas" [ngClass]="{'cursor-moving' : draggingShape}" (click)="onSvgClick($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()">
                 @for (s of shapes; track s) {
                     @if (s.type == 'rectangle') {
                         <rect 
@@ -14,13 +14,15 @@
                         [attr.fill]="s.fill"
                         [attr.stroke]="s.stroke"
                         [attr.stroke-width]="s.strokeWidth" 
-                        (click)="onShapeClicked(s)"/>
+                        (click)="onShapeClicked(s)"
+                        (mousedown)="onMouseDown($event, s)"/>
                     } @else {
                         <polygon
-                        [attr.points]="s.points"
+                        [attr.points]="getPolygonPoints(s.points)"
                         [attr.fill]="s.fill"
                         [attr.stroke]="s.stroke"
                         [attr.stroke-width]="s.strokeWidth"
+                        (mousedown)="onMouseDown($event, s)"
                         (click)="onShapeClicked(s)"/>
                     }
                 }
@@ -28,22 +30,31 @@
         </div>
         <div class="flex-column ml-auto mr-16">
             <form [formGroup]="form" class="flex-column">
-                @if (shapeType() == 'rectangle') {
-                  <label>Slider do Retângulo</label>
-                  <input type="range" formControlName="roundControl" min="0" max="50"/>
-                  <span>{{ form.value.roundControl }}</span>
-                } @else if (shapeType() == 'star'){
-                  <div class="flex-row">
-                    <label>Número de Pontas</label>
-                    <input type="number" formControlName="starPoints" min="3" max="20" />
-                  </div>              
-                  <label>Slider da Estrela</label>
-                  <input type="range" formControlName="starSlider" min="0" [max]="50" />
-                  <span>{{ form.value.starSlider }}</span>
+                @if(shapeType() == 'rectangle' || shapeType() == 'star') {
+                    @if (shapeType() == 'rectangle') {
+                        <label>Slider do Retângulo</label>
+                        <input type="range" formControlName="roundControl" min="0" max="50"/>
+                        <span>{{ form.value.roundControl }}</span>
+                    } @else if (shapeType() == 'star') {
+                        <div class="flex-row">
+                          <label>Número de Pontas</label>
+                          <input type="number" formControlName="starPoints" min="3" max="20" />
+                        </div>              
+                        <label>Slider da Estrela</label>
+                        <input type="range" formControlName="starSlider" min="0" [max]="50" />
+                        <span>{{ form.value.starSlider }}</span>
+                    }
+                    <div class="flex-row">
+                        <label>Espessura da borda</label>
+                        <input type="number" formControlName="strokeWidth" min="0" max="20" />
+                    </div>
                 } @else {
                   <p>Selecione uma forma para começar.</p>
                 }
             </form>
+            @if (shapeType() == 'rectangle' || shapeType() == 'star') {
+                <button (click)="deleteShape()">Excluir forma</button>
+            }
         </div>
     </div>
     <div class="flex-row my-16 justify-center">
