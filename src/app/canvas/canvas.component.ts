@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, effect, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Shape } from './shape';
+import { ColorPickerModule, ColorPickerService } from 'ngx-color-picker';
 
 export type Point = { x: number; y: number };
 
@@ -10,7 +11,8 @@ export type Point = { x: number; y: number };
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ColorPickerModule
   ],
   templateUrl: './canvas.component.html',
   styleUrl: './canvas.scss'
@@ -28,21 +30,39 @@ export class CanvasComponent implements OnInit{
     stroke: '',
     strokeWidth: 0,
     x: 0,
-    y: 0
+    y: 0,
+    scale: 1
   };
   roundControl: FormControl = new FormControl(0);
   starPoints: FormControl = new FormControl(5);
   starSlider: FormControl = new FormControl(25);
+  shapeScale: FormControl = new FormControl(1);
   strokeWidth: FormControl = new FormControl(2);
+  strokeColorControl: FormControl = new FormControl('#000000');
+  fillColorControl: FormControl = new FormControl('#FFFFFF');
 
+  strokeColor: string = '#000000';
+  fillColor: string = '#FFFFFF';
   draggingShape: Shape | null = null;
   initialMouse: { x: number; y: number } | null = null;
   offsetX = 0;
   offsetY = 0;
+  scale = 1;
 
-  constructor(private fb: FormBuilder) {
-    this.form = new FormGroup({});
-  
+  constructor(private fb: FormBuilder, private cpService: ColorPickerService) {
+    this.form = new FormGroup({});  
+    this.trackForm();  
+    this.buildForm();
+  }
+
+  ngOnInit(): void {
+    const savedShapes = localStorage.getItem('svgShapes');
+    if (savedShapes) {
+      this.shapes = JSON.parse(savedShapes);
+    }
+  }  
+
+  trackForm() {
     this.roundControl.valueChanges.subscribe((val) => {
       const value = val ?? 0;
       if (this.currentShape && this.currentShape.type == 'rectangle') {
@@ -60,6 +80,16 @@ export class CanvasComponent implements OnInit{
       this.updateStar();
     });
 
+    this.shapeScale.valueChanges.subscribe((val) => {
+      const scale = val ?? 1;
+      if(this.currentShape && this.currentShape.type === 'rectangle') {
+        this.scaleRect(scale);
+      } else if (this.currentShape && this.currentShape.type === 'star') {
+        this.scalePolygon(this.currentShape.points!, scale);
+      }
+      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+    });
+
     this.strokeWidth.valueChanges.subscribe((val) => {
       const value = val ?? 0;
       if (this.currentShape) {
@@ -67,33 +97,50 @@ export class CanvasComponent implements OnInit{
       }
       localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
-  
+
+    this.strokeColorControl.valueChanges.subscribe((val) => {
+      const value = val ?? '#000000';
+      if (this.currentShape) {
+        this.currentShape.stroke = value;
+      }
+      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+    });
+
+    this.fillColorControl.valueChanges.subscribe((val) => {
+      const value = val ?? '#FFFFFF';
+      if (this.currentShape) {
+        this.currentShape.fill = value;
+      }
+      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+    });
+  }
+
+  buildForm() {
     effect(() => {
       const shape = this.shapeType();
   
       if (shape === 'rectangle') {
         this.form = this.fb.group({
           roundControl: this.roundControl,
-          strokeWidth: this.strokeWidth
+          strokeWidth: this.strokeWidth,
+          strokeColor: this.strokeColorControl,
+          fillColor: this.fillColorControl,
+          shapeScale: this.shapeScale,
         });
       } else if (shape === 'star') {
         this.form = this.fb.group({
           starPoints: this.starPoints,
           starSlider: this.starSlider,
-          strokeWidth: this.strokeWidth
+          strokeWidth: this.strokeWidth,
+          strokeColor: this.strokeColorControl,
+          fillColor: this.fillColorControl,
+          shapeScale: this.shapeScale,
         });
       } else {
         this.form = new FormGroup({});
       }
     });
   }
-
-  ngOnInit(): void {
-    const savedShapes = localStorage.getItem('svgShapes');
-    if (savedShapes) {
-      this.shapes = JSON.parse(savedShapes);
-    }
-  }  
 
   addingShape(shape: string) {
     if(shape == 'rectangle' && !this.addingRectangle) {
@@ -118,10 +165,11 @@ export class CanvasComponent implements OnInit{
       ry: this.roundControl.value ?? 0,
       width: 100,
       height: 50,
-      fill: 'skyblue',
-      stroke: 'black',
+      fill: '#FFFFFF',
+      stroke: '#000000',
       strokeWidth: 2,
-      type: 'rectangle'
+      type: 'rectangle',
+      scale: 1
     };
     this.shapes.push(newRect);
     this.currentShape = newRect;
@@ -135,12 +183,13 @@ export class CanvasComponent implements OnInit{
   
     const newPolygon: Shape = {
       points,
-      fill: 'gold',
-      stroke: 'black',
+      fill: '#FFFFFF',
+      stroke: '#000000',
       strokeWidth: 2,
       type: 'star',
       x: centerX,
-      y: centerY
+      y: centerY,
+      scale: 1
     };
   
     this.shapes.push(newPolygon);
@@ -175,9 +224,46 @@ export class CanvasComponent implements OnInit{
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
   }
 
+  scaleRect(scale: number) {
+    const originalWidth = (this.currentShape.width ?? 0) / (this.currentShape.scale ?? 1);
+    const originalHeight = (this.currentShape.height ?? 0) / (this.currentShape.scale ?? 1);
+
+    this.currentShape.scale = scale;
+    const newWidth = originalWidth * scale;
+    const newHeight = originalHeight * scale;
+
+    const dx = (newWidth - (this.currentShape.width ?? 0)) / 2;
+    const dy = (newHeight - (this.currentShape.height ?? 0)) / 2;
+
+    this.currentShape.width = newWidth;
+    this.currentShape.height = newHeight;
+    this.currentShape.x -= dx;
+    this.currentShape.y -= dy;
+  }
+
+  scalePolygon(points: Point[], scale: number) {
+
+    const previousScale = this.currentShape.scale ?? 1;
+    const centerX = this.currentShape.x;
+    const centerY = this.currentShape.y;
+
+    const unscaledPoints = points.map(p => ({
+      x: centerX + (p.x - centerX) * scale,
+      y: centerY + (p.y - centerY) * scale
+    }));
+
+    const newPoints = points.map(p => ({
+      x: centerX + (p.x - centerX) * scale,
+      y: centerY + (p.y - centerY) * scale
+    }));
+
+    this.currentShape.points = newPoints;
+    this.currentShape.scale = scale;
+  }
+
   onSvgClick(event: MouseEvent) {
 
-    if(!this.addingRectangle && !this.addingStar) {
+    if(!event.target || (!this.addingRectangle && !this.addingStar)) {
       return;
     }
 
@@ -204,7 +290,23 @@ export class CanvasComponent implements OnInit{
 
   onShapeClicked(clickedShape: Shape) {
     this.currentShape = clickedShape;
+    
+    const scale = clickedShape.scale ?? 1;
+    this.shapeScale.setValue(scale);
+
     this.shapeType.set(this.currentShape.type);
+
+    if(this.currentShape.type === 'rectangle') {
+      this.roundControl.setValue(this.currentShape.rx);
+    } else if(this.currentShape.points){
+      const values = this.estimateStarValuesFromPoints(this.currentShape.points, this.currentShape.x, this.currentShape.y);
+      this.starPoints.setValue(values.numPoints);
+      this.starSlider.setValue(values.starSlider);      
+    }
+    this.strokeWidth.setValue(this.currentShape.strokeWidth);
+    this.strokeColorControl.setValue(this.currentShape.stroke);
+    this.fillColorControl.setValue(this.currentShape.fill);
+
   }
 
   resetShape() {
@@ -214,12 +316,18 @@ export class CanvasComponent implements OnInit{
       stroke: '',
       strokeWidth: 0,
       x: 0,
-      y: 0
+      y: 0,
+      scale: 1
     };
+    this.scale = 1;
     this.form.controls['roundControl']?.setValue(0);
     this.form.controls['starPoints']?.setValue(5);
     this.form.controls['starSlider']?.setValue(25);
     this.form.controls['strokeWidth']?.setValue(2);
+    this.form.controls['strokeColor']?.setValue('#000000');
+    this.form.controls['fillColor']?.setValue('#FFFFFF');
+    this.form.controls['shapeScale']?.setValue(1);
+
   }
 
   generateStarPoints(
@@ -246,6 +354,34 @@ export class CanvasComponent implements OnInit{
   getPolygonPoints(points?: Point[]): string {
     if (!points) return '';
     return points.map(p => `${p.x},${p.y}`).join(' ');
+  }
+
+  estimateStarValuesFromPoints(points: Point[], centerX: number, centerY: number) {
+    const numPoints = points.length / 2;  
+    const outerRadii = [];
+    const innerRadii = [];
+  
+    const distances = points.map(p => {
+      const dx = p.x - centerX;
+      const dy = p.y - centerY;
+      return Math.sqrt(dx * dx + dy * dy);
+    });
+  
+    for (let i = 0; i < distances.length; i++) {
+      if (i % 2 === 0) {
+        outerRadii.push(distances[i]);
+      } else {
+        innerRadii.push(distances[i]);
+      }
+    }  
+  
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const starSlider = Math.round(avg(innerRadii));
+  
+    return {
+      numPoints,
+      starSlider
+    };
   }
 
   onMouseDown(event: MouseEvent, shape: Shape) {
@@ -303,4 +439,15 @@ export class CanvasComponent implements OnInit{
     this.initialMouse = null;
   }
 
+  onStrokeColorChange(color: string): void {
+    this.strokeColor = color;
+    this.currentShape.stroke = color;
+    localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+  }
+
+  onFillColorChange(color: string): void {
+    this.fillColor = color;
+    this.currentShape.fill = color;
+    localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+  }
 }

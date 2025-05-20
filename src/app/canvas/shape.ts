@@ -7,6 +7,7 @@ export interface Shape {
   strokeWidth: number;
   x: number;
   y: number;
+  scale: number;
   rx?: number;
   ry?: number;
   width?: number;

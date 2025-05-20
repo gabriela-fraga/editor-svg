@@ -48,6 +48,21 @@
                         <label>Espessura da borda</label>
                         <input type="number" formControlName="strokeWidth" min="0" max="20" />
                     </div>
+                    <div class="flex-row">
+                        <label>Cor da borda</label>
+                        <input formControlName="strokeColor" [(colorPicker)]="strokeColor"
+                        (colorPickerChange)="onStrokeColorChange($event)" [style.background]="strokeColor" [cpOKButton]="true"/>
+                    </div>
+                    <div class="flex-row">
+                        <label>Cor do preenchimento</label>
+                        <input formControlName="fillColor" [(colorPicker)]="fillColor"
+                        (colorPickerChange)="onFillColorChange($event)" [style.background]="fillColor" [cpOKButton]="true"/>
+                    </div>
+                    <div class="flex-row">
+                        <label>Tamanho da Figura</label>
+                        <input type="range" min="0.1" max="2" step="0.01" formControlName="shapeScale" />
+                        <span>{{ form.value.shapeScale }}</span>
+                    </div>
                 } @else {
                   <p>Selecione uma forma para começar.</p>
                 }
