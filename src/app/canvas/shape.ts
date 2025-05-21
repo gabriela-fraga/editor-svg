@@ -13,4 +13,6 @@ export interface Shape {
   width?: number;
   height?: number;
   points?: Point[];
+  starAngle?: number;
+  starPoints?: number;
 }
