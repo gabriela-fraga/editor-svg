@@ -47,6 +47,7 @@ export class CanvasComponent implements OnInit{
   offsetX = 0;
   offsetY = 0;
   scale = 1;
+  hasClickedShape = false;
 
   constructor(private fb: FormBuilder, private cpService: ColorPickerService) {
     this.form = new FormGroup({});  
@@ -64,56 +65,70 @@ export class CanvasComponent implements OnInit{
   /** Marca os formControls do formulário de edição das formas para observar as alterações */
   trackForm() {
     this.roundControl.valueChanges.subscribe((val) => {
-      const value = val ?? 0;
-      if (this.currentShape && this.currentShape.type == 'rectangle') {
-        this.currentShape.rx = value;
-        this.currentShape.ry = value;
+      if(!this.hasClickedShape) {
+        const value = val ?? 0;
+        if (this.currentShape && this.currentShape.type == 'rectangle') {
+          this.currentShape.rx = value;
+          this.currentShape.ry = value;
+        }
+        localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
-      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
 
     this.starPoints.valueChanges.subscribe((val) => {
-      this.currentShape.starPoints = val;
-      this.updateStar();
+      if(!this.hasClickedShape) {
+        this.currentShape.starPoints = val;
+        this.updateStar();
+      }
     });
 
     this.starSlider.valueChanges.subscribe((val) => {
-      this.currentShape.starAngle = val;
-      this.updateStar();
+      if (!this.hasClickedShape) {
+        this.currentShape.starAngle = val;
+        this.updateStar();
+      }
     });
 
     this.shapeScale.valueChanges.subscribe((val) => {
-      const scale = val ?? 1;
-      if(this.currentShape && this.currentShape.type === 'rectangle') {
-        this.scaleRect(scale);
-      } else if (this.currentShape && this.currentShape.type === 'star') {
-        this.scalePolygon(this.currentShape.points!, scale);
+      if (!this.hasClickedShape) {
+        const scale = val ?? 1;
+        if(this.currentShape && this.currentShape.type === 'rectangle') {
+          this.scaleRect(scale);
+        } else if (this.currentShape && this.currentShape.type === 'star') {
+          this.scalePolygon(this.currentShape.points!, scale);
+        }
+        localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
-      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
 
     this.strokeWidth.valueChanges.subscribe((val) => {
-      const value = val ?? 0;
-      if (this.currentShape) {
-        this.currentShape.strokeWidth = value;
+      if (!this.hasClickedShape) {
+        const value = val ?? 0;
+        if (this.currentShape) {
+          this.currentShape.strokeWidth = value;
+        }
+        localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
-      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
 
     this.strokeColorControl.valueChanges.subscribe((val) => {
-      const value = val ?? '#000000';
-      if (this.currentShape) {
-        this.currentShape.stroke = value;
+      if (!this.hasClickedShape) {
+        const value = val ?? '#000000';
+        if (this.currentShape) {
+          this.currentShape.stroke = value;
+        }
+        localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
-      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
 
     this.fillColorControl.valueChanges.subscribe((val) => {
-      const value = val ?? '#FFFFFF';
-      if (this.currentShape) {
-        this.currentShape.fill = value;
+      if (!this.hasClickedShape) {
+        const value = val ?? '#FFFFFF';
+        if (this.currentShape) {
+          this.currentShape.fill = value;
+        }
+        localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
-      localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
   }
 
@@ -254,22 +269,15 @@ export class CanvasComponent implements OnInit{
     this.currentShape.y -= dy;
   }
 
-  scalePolygon(points: Point[], scale: number) {
-
-    const previousScale = this.currentShape.scale ?? 1;
+  scalePolygon(points: Point[], scale: number): void {
     const centerX = this.currentShape.x;
     const centerY = this.currentShape.y;
-
-    const unscaledPoints = points.map(p => ({
-      x: centerX + (p.x - centerX) * scale,
-      y: centerY + (p.y - centerY) * scale
-    }));
-
+  
     const newPoints = points.map(p => ({
       x: centerX + (p.x - centerX) * scale,
       y: centerY + (p.y - centerY) * scale
     }));
-
+  
     this.currentShape.points = newPoints;
     this.currentShape.scale = scale;
   }
@@ -302,6 +310,7 @@ export class CanvasComponent implements OnInit{
   }
 
   onShapeClicked(clickedShape: Shape) {
+    this.hasClickedShape = true;
     this.currentShape = clickedShape;
 
     this.shapeType.set(this.currentShape.type);
@@ -310,12 +319,13 @@ export class CanvasComponent implements OnInit{
       this.roundControl.setValue(this.currentShape.rx);
     } else if(this.currentShape.points){
       this.starPoints.setValue(this.currentShape.starPoints);
-      this.starSlider.setValue(this.currentShape.starAngle);      
+      this.starSlider.setValue(this.currentShape.starAngle);   
     }
     this.strokeWidth.setValue(this.currentShape.strokeWidth);
     this.strokeColorControl.setValue(this.currentShape.stroke);
     this.fillColorControl.setValue(this.currentShape.fill);
     this.shapeScale.setValue(this.currentShape.scale);
+    this.hasClickedShape = false;
 
   }
 
