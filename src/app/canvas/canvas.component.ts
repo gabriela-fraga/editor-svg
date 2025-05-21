@@ -227,15 +227,15 @@ export class CanvasComponent implements OnInit{
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
   }
 
-  calculateStar(x: number, y:number) {
-    const outer = 100 - (this.starSlider.value ?? 0);
-    const inner = this.starSlider.value ?? 0;
+  calculateStar(x: number, y: number): Point[] {
+    const outer = (100 - (this.starSlider.value ?? 0)) * this.currentShape.scale;
+    const inner = (this.starSlider.value ?? 0) * this.currentShape.scale;
     const numPoints = this.starPoints.value ?? 5;
-
+  
     const points = this.generateStarPoints(x, y, outer, inner, numPoints);
-
     return points;
   }
+  
 
   deleteShape() {
     const index = this.shapes.indexOf(this.currentShape);
