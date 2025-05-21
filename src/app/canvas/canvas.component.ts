@@ -14,8 +14,7 @@ export type Point = { x: number; y: number };
     ReactiveFormsModule,
     ColorPickerModule
   ],
-  templateUrl: './canvas.component.html',
-  styleUrl: './canvas.scss'
+  templateUrl: './canvas.component.html'
 })
 export class CanvasComponent implements OnInit{
   
@@ -62,6 +61,7 @@ export class CanvasComponent implements OnInit{
     }
   }  
 
+  /** Marca os formControls do formulário de edição das formas para observar as alterações */
   trackForm() {
     this.roundControl.valueChanges.subscribe((val) => {
       const value = val ?? 0;
@@ -72,11 +72,13 @@ export class CanvasComponent implements OnInit{
       localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
     });
 
-    this.starPoints.valueChanges.subscribe(() => {
+    this.starPoints.valueChanges.subscribe((val) => {
+      this.currentShape.starPoints = val;
       this.updateStar();
     });
 
-    this.starSlider.valueChanges.subscribe(() => {
+    this.starSlider.valueChanges.subscribe((val) => {
+      this.currentShape.starAngle = val;
       this.updateStar();
     });
 
@@ -115,6 +117,7 @@ export class CanvasComponent implements OnInit{
     });
   }
 
+  /** Constrói o formulário de acordo com o tipo de forma */
   buildForm() {
     effect(() => {
       const shape = this.shapeType();
@@ -142,6 +145,7 @@ export class CanvasComponent implements OnInit{
     });
   }
 
+  /** Ativa o modo de adição de forma */
   addingShape(shape: string) {
     if(shape == 'rectangle' && !this.addingRectangle) {
       this.addingRectangle = true;
@@ -189,7 +193,9 @@ export class CanvasComponent implements OnInit{
       type: 'star',
       x: centerX,
       y: centerY,
-      scale: 1
+      scale: 1,
+      starPoints: 5,
+      starAngle: 25
     };
   
     this.shapes.push(newPolygon);
@@ -219,6 +225,13 @@ export class CanvasComponent implements OnInit{
     if (index > -1) {
       this.shapes.splice(index, 1);
     }
+    this.resetShape();
+    this.shapeType.set('');
+    localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
+  }
+
+  deleteAll() {
+    this.shapes = [];
     this.resetShape();
     this.shapeType.set('');
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
@@ -290,22 +303,19 @@ export class CanvasComponent implements OnInit{
 
   onShapeClicked(clickedShape: Shape) {
     this.currentShape = clickedShape;
-    
-    const scale = clickedShape.scale ?? 1;
-    this.shapeScale.setValue(scale);
 
     this.shapeType.set(this.currentShape.type);
 
     if(this.currentShape.type === 'rectangle') {
       this.roundControl.setValue(this.currentShape.rx);
     } else if(this.currentShape.points){
-      const values = this.estimateStarValuesFromPoints(this.currentShape.points, this.currentShape.x, this.currentShape.y);
-      this.starPoints.setValue(values.numPoints);
-      this.starSlider.setValue(values.starSlider);      
+      this.starPoints.setValue(this.currentShape.starPoints);
+      this.starSlider.setValue(this.currentShape.starAngle);      
     }
     this.strokeWidth.setValue(this.currentShape.strokeWidth);
     this.strokeColorControl.setValue(this.currentShape.stroke);
     this.fillColorControl.setValue(this.currentShape.fill);
+    this.shapeScale.setValue(this.currentShape.scale);
 
   }
 
@@ -330,6 +340,7 @@ export class CanvasComponent implements OnInit{
 
   }
 
+  /** Método auxiliar que gera o array de pontos que compõem as pontas da estrela */
   generateStarPoints(
     centerX: number,
     centerY: number,
@@ -351,37 +362,10 @@ export class CanvasComponent implements OnInit{
     return points;
   }
   
+  /** Mapeia os pontos da estrela para o formato esperado pelo <polygon>*/
   getPolygonPoints(points?: Point[]): string {
     if (!points) return '';
     return points.map(p => `${p.x},${p.y}`).join(' ');
-  }
-
-  estimateStarValuesFromPoints(points: Point[], centerX: number, centerY: number) {
-    const numPoints = points.length / 2;  
-    const outerRadii = [];
-    const innerRadii = [];
-  
-    const distances = points.map(p => {
-      const dx = p.x - centerX;
-      const dy = p.y - centerY;
-      return Math.sqrt(dx * dx + dy * dy);
-    });
-  
-    for (let i = 0; i < distances.length; i++) {
-      if (i % 2 === 0) {
-        outerRadii.push(distances[i]);
-      } else {
-        innerRadii.push(distances[i]);
-      }
-    }  
-  
-    const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const starSlider = Math.round(avg(innerRadii));
-  
-    return {
-      numPoints,
-      starSlider
-    };
   }
 
   onMouseDown(event: MouseEvent, shape: Shape) {
