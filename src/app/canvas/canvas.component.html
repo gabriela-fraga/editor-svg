@@ -1,6 +1,6 @@
 <div class="flex-column height-100">
-    <div class="flex-row height-100">
-        <div class="flex-column align-center mx-24 width-100 height-100">
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
             <svg class="svg-canvas" [ngClass]="{'cursor-moving' : draggingShape}" (click)="onSvgClick($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()">
                 @for (s of shapes; track s) {
                     @if (s.type == 'rectangle') {
@@ -28,52 +28,50 @@
                 }
             </svg>
         </div>
-        <div class="flex-column ml-auto mr-16">
+        <div class="form-container">
             <form [formGroup]="form" class="flex-column">
                 @if(shapeType() == 'rectangle' || shapeType() == 'star') {
                     @if (shapeType() == 'rectangle') {
-                        <label>Slider do Retângulo</label>
-                        <input type="range" formControlName="roundControl" min="0" max="50"/>
-                        <span>{{ form.value.roundControl }}</span>
+                        <label class="mb-4">Curvatura do Retângulo</label>
+                        <input class="mb-4"type="range" formControlName="roundControl" min="0" max="50"/>
+                        <span class="mb-8">{{ form.value.roundControl }}</span>
                     } @else if (shapeType() == 'star') {
                         <div class="flex-row">
-                          <label>Número de Pontas</label>
-                          <input type="number" formControlName="starPoints" min="3" max="20" />
-                        </div>              
-                        <label>Slider da Estrela</label>
-                        <input type="range" formControlName="starSlider" min="0" [max]="50" />
-                        <span>{{ form.value.starSlider }}</span>
+                            <label class="mb-4">Número de Pontas</label>
+                            <input class="mb-8 ml-auto" type="number" formControlName="starPoints" min="3" max="20" />    
+                        </div>    
+                        <label class="mb-4">Ângulo das Pontas</label>
+                        <input class="mb-4" type="range" formControlName="starSlider" min="0" [max]="50" />
+                        <span class="mb-8">{{ form.value.starSlider }}</span>
                     }
                     <div class="flex-row">
-                        <label>Espessura da borda</label>
-                        <input type="number" formControlName="strokeWidth" min="0" max="20" />
+                        <label class="mb-4">Espessura da Borda (px)</label>
+                        <input class="mb-8 ml-auto" type="number" formControlName="strokeWidth" min="0" max="20" />
                     </div>
                     <div class="flex-row">
-                        <label>Cor da borda</label>
-                        <input formControlName="strokeColor" [(colorPicker)]="strokeColor"
+                        <label class="mb-4">Cor da Borda</label>
+                        <input class="mb-8 ml-auto wth-125" formControlName="strokeColor" [(colorPicker)]="strokeColor"
                         (colorPickerChange)="onStrokeColorChange($event)" [style.background]="strokeColor" [cpOKButton]="true"/>
                     </div>
                     <div class="flex-row">
-                        <label>Cor do preenchimento</label>
-                        <input formControlName="fillColor" [(colorPicker)]="fillColor"
+                        <label class="mb-4">Cor do Preenchimento</label>
+                        <input class="mb-8 ml-auto wth-125" formControlName="fillColor" [(colorPicker)]="fillColor"
                         (colorPickerChange)="onFillColorChange($event)" [style.background]="fillColor" [cpOKButton]="true"/>
                     </div>
-                    <div class="flex-row">
-                        <label>Tamanho da Figura</label>
-                        <input type="range" min="0.1" max="2" step="0.01" formControlName="shapeScale" />
-                        <span>{{ form.value.shapeScale }}</span>
-                    </div>
+                    <label class="mb-4">Redimensionar Figura</label>
+                    <input class="mb-4" type="range" min="0.1" max="2" step="0.01" formControlName="shapeScale" />
+                    <span class="mb-8">{{ form.value.shapeScale }}</span>
+                    <button class="btn btn-delete" (click)="deleteShape()">Excluir forma</button>
                 } @else {
                   <p>Selecione uma forma para começar.</p>
                 }
             </form>
-            @if (shapeType() == 'rectangle' || shapeType() == 'star') {
-                <button (click)="deleteShape()">Excluir forma</button>
-            }
         </div>
     </div>
-    <div class="flex-row my-16 justify-center">
-        <button [ngStyle]="{'background-color': addingRectangle ? 'red' : 'white' }" (click)="addingShape('rectangle')">Adicionar Retângulo</button>
-        <button [ngStyle]="{'background-color': addingStar ? 'red' : 'white' }" (click)="addingShape('star')">Adicionar Estrela</button>
+
+    <div class="flex-row my-16 justify-center button-container">
+        <button class="mr-16 btn" [ngClass]="addingRectangle ? 'btn-selected' : 'btn-primary'" (click)="addingShape('rectangle')">Adicionar Retângulo</button>
+        <button class="mr-16 btn" [ngClass]="addingStar ? 'btn-selected' : 'btn-primary'" (click)="addingShape('star')">Adicionar Estrela</button>
+        <button class="btn btn-delete" (click)="deleteAll()">Limpar Canvas</button>
     </div>
 </div>
