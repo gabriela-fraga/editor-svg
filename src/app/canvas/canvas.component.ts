@@ -337,6 +337,7 @@ export class CanvasComponent implements OnInit{
     this.form.controls['strokeColor']?.setValue('#000000');
     this.form.controls['fillColor']?.setValue('#FFFFFF');
     this.form.controls['shapeScale']?.setValue(1);
+    this.shapeType.set('')
 
   }
 
