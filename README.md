@@ -37,5 +37,7 @@ Para rodar os testes, use o comando:
 ## Contatos da Desenvolvedora
 
 gabyfragamoreiramedeiros@gmail.com
+
 (31) 99856-8440
+
 https://www.linkedin.com/in/gabriela-fraga-medeiros/
