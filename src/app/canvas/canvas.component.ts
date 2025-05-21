@@ -271,18 +271,22 @@ export class CanvasComponent implements OnInit{
     this.currentShape.y -= dy;
   }
 
-  scalePolygon(points: Point[], scale: number): void {
+  scalePolygon(points: Point[], newScale: number): void {
+    const oldScale = this.currentShape.scale ?? 1;
     const centerX = this.currentShape.x;
     const centerY = this.currentShape.y;
   
+    const scaleFactor = newScale / oldScale;
+  
     const newPoints = points.map(p => ({
-      x: centerX + (p.x - centerX) * scale,
-      y: centerY + (p.y - centerY) * scale
+      x: centerX + (p.x - centerX) * scaleFactor,
+      y: centerY + (p.y - centerY) * scaleFactor
     }));
   
     this.currentShape.points = newPoints;
-    this.currentShape.scale = scale;
+    this.currentShape.scale = newScale;
   }
+  
 
   onSvgClick(event: MouseEvent) {
 
