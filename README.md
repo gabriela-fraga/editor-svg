@@ -34,6 +34,8 @@ Para rodar os testes, use o comando:
 
 `npm run test`
 
+O programa poderá ser acessado em http://localhost:4200/
+
 ## Contatos da Desenvolvedora
 
 gabyfragamoreiramedeiros@gmail.com
