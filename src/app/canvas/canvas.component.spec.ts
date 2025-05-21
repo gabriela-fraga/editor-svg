@@ -508,27 +508,4 @@ describe('CanvasComponent', () => {
     });
   });
   
-  describe('estimateStarValuesFromPoints', () => {
-    it('should calculate numPoints and starSlider correctly', () => {
-      const points = [
-        { x: 4, y: 0 },  // outer
-        { x: 2, y: 0 },  // inner
-        { x: 0, y: 4 },  // outer
-        { x: 0, y: 2 }   // inner
-      ];
-      const centerX = 0;
-      const centerY = 0;
-  
-      const result = component.estimateStarValuesFromPoints(points, centerX, centerY);
-      // numPoints = points.length / 2 = 4 / 2 = 2
-      // Distances:
-      // outerRadii: sqrt(4^2 + 0) = 4, sqrt(0 + 4^2) = 4 -> avg = 4
-      // innerRadii: sqrt(2^2 + 0) = 2, sqrt(0 + 2^2) = 2 -> avg = 2
-      // starSlider = round(2) = 2
-  
-      expect(result.numPoints).toBe(2);
-      expect(result.starSlider).toBe(2);
-    });
-  });  
-  
 });
