@@ -192,6 +192,7 @@ export class CanvasComponent implements OnInit{
     };
     this.shapes.push(newRect);
     this.currentShape = newRect;
+    this.addingRectangle = false;
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
   }
   
@@ -215,6 +216,7 @@ export class CanvasComponent implements OnInit{
   
     this.shapes.push(newPolygon);
     this.currentShape = newPolygon;
+    this.addingStar = false;
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
   }
 
