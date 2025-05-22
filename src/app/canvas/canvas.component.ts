@@ -78,7 +78,7 @@ export class CanvasComponent implements OnInit{
     });
 
     this.starPoints.valueChanges.pipe(
-      debounceTime(environment.test ? 0 : 1000),
+      debounceTime(environment.test ? 0 : 300),
       distinctUntilChanged()
     ).subscribe((val) => {
       let value = val;
@@ -116,7 +116,7 @@ export class CanvasComponent implements OnInit{
     });
 
     this.strokeWidth.valueChanges.pipe(
-      debounceTime(environment.test ? 0 : 1000),
+      debounceTime(environment.test ? 0 : 300),
       distinctUntilChanged()
     ).subscribe((val) => {
       let value = val;
