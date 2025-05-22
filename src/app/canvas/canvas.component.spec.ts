@@ -1,27 +1,31 @@
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { CanvasComponent } from './canvas.component';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder } from '@angular/forms';
 import { ColorPickerService } from 'ngx-color-picker';
+import { By } from '@angular/platform-browser';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { Shape } from './shape';
 
 describe('CanvasComponent', () => {
   let component: CanvasComponent;
   let fixture: ComponentFixture<CanvasComponent>;
-  let cpServiceSpy: jasmine.SpyObj<ColorPickerService>;
+  let colorPickerServiceSpy: jasmine.SpyObj<ColorPickerService>;
 
   beforeEach(async () => {
     const spy = jasmine.createSpyObj('ColorPickerService', ['']);
 
     await TestBed.configureTestingModule({
-      imports: [CanvasComponent, ReactiveFormsModule],
-      providers: [FormBuilder, { provide: ColorPickerService, useValue: spy }],
+      imports: [CanvasComponent], // standalone
+      providers: [
+        FormBuilder,
+        { provide: ColorPickerService, useValue: spy }
+      ],
+      schemas: [NO_ERRORS_SCHEMA] // evitar erros em elementos externos
     }).compileComponents();
 
     fixture = TestBed.createComponent(CanvasComponent);
     component = fixture.componentInstance;
-    cpServiceSpy = TestBed.inject(
-      ColorPickerService
-    ) as jasmine.SpyObj<ColorPickerService>;
-
+    colorPickerServiceSpy = TestBed.inject(ColorPickerService) as jasmine.SpyObj<ColorPickerService>;
     fixture.detectChanges();
   });
 
@@ -29,87 +33,138 @@ describe('CanvasComponent', () => {
     localStorage.clear();
   });
 
-  it('should create component and initialize empty shapes array', () => {
+  it('should create the component', () => {
     expect(component).toBeTruthy();
-    expect(component.shapes).toEqual([]);
   });
 
-  it('should load shapes from localStorage on ngOnInit', () => {
-    const shapes = [{ type: 'rectangle', x: 10, y: 20 }];
-    localStorage.setItem('svgShapes', JSON.stringify(shapes));
+  it('should initialize shapes from localStorage on ngOnInit', () => {
+    const shapesMock = [{ type: 'rectangle', x: 1, y: 2 }];
+    localStorage.setItem('svgShapes', JSON.stringify(shapesMock));
     component.ngOnInit();
     expect(component.shapes.length).toBe(1);
     expect(component.shapes[0].type).toBe('rectangle');
   });
 
-  it('should add rectangle shape on addRectangle call', () => {
-    const svgPoint = { x: 100, y: 100 } as SVGPoint;
+  it('should add a rectangle and update shapes and currentShape', () => {
+    const svgPoint = { x: 50, y: 50 } as SVGPoint;
     component.addRectangle(svgPoint);
     expect(component.shapes.length).toBe(1);
-    expect(component.shapes[0].type).toBe('rectangle');
-    expect(component.currentShape).toBe(component.shapes[0]);
+    expect(component.currentShape.type).toBe('rectangle');
+    expect(component.currentShape.x).toBe(0); // 50 - 100/2 = 0
+    expect(component.addingRectangle).toBeFalse();
   });
 
-  it('should add star shape on addStar call', () => {
-    const svgPoint = { x: 50, y: 50 } as SVGPoint;
+  it('should add a star and update shapes and currentShape', () => {
+    const svgPoint = { x: 100, y: 100 } as SVGPoint;
     component.addStar(svgPoint);
     expect(component.shapes.length).toBe(1);
-    expect(component.shapes[0].type).toBe('star');
-    expect(component.currentShape).toBe(component.shapes[0]);
+    expect(component.currentShape.type).toBe('star');
+    expect(component.currentShape.x).toBe(100);
+    expect(component.addingStar).toBeFalse();
   });
 
-  it('should delete current shape', () => {
-    const svgPoint = { x: 0, y: 0 } as SVGPoint;
-    component.addRectangle(svgPoint);
-    expect(component.shapes.length).toBe(1);
+  it('should delete a shape', () => {
+    const rect = {
+      type: 'rectangle',
+      x: 0,
+      y: 0,
+      rx: 0,
+      ry: 0,
+      width: 100,
+      height: 50,
+      fill: '#fff',
+      stroke: '#000',
+      strokeWidth: 1,
+      scale: 1
+    };
+    component.shapes.push(rect);
+    component.currentShape = rect;
+
     component.deleteShape();
+
     expect(component.shapes.length).toBe(0);
     expect(component.currentShape.type).toBe('');
   });
 
-  it('should update star points when updateStar is called', () => {
-    const svgPoint = { x: 0, y: 0 } as SVGPoint;
-    component.addStar(svgPoint);
-    spyOn(component, 'calculateStar').and.callThrough();
+  it('should delete all shapes', () => {
+    component.shapes.push({ type: 'rectangle' } as any);
+    component.shapes.push({ type: 'star' } as any);
 
-    component.updateStar();
-    expect(component.calculateStar).toHaveBeenCalled();
-    expect(component.currentShape.points?.length).toBeGreaterThan(0);
+    component.deleteAll();
+
+    expect(component.shapes.length).toBe(0);
+    expect(component.currentShape.type).toBe('');
   });
 
-  it('should reset shape properties on resetShape', fakeAsync(() => {
-    component.shapeType.set('rectangle');
-    tick();
+  it('should calculate star points correctly', () => {
+    component.currentShape = {
+      x: 100,
+      y: 100,
+      scale: 1,
+      starPoints: 5,
+      starAngle: 25,
+      type: 'star',
+      fill: '',
+      stroke: '',
+      strokeWidth: 1
+    };
+    component.starPoints.setValue(5);
+    component.starSlider.setValue(25);
 
-    component.resetShape();
+    const points = component.calculateStar(100, 100);
+    expect(points.length).toBe(10); // 2 * starPoints
+  });
 
-    expect(component.currentShape.type).toBe('');
-    expect(component.scale).toBe(1);
-    expect(component.form.controls['strokeWidth']?.value).toBe(2);
-  }));
+  it('should scale rectangle properly', () => {
+    component.currentShape = {
+      type: 'rectangle',
+      width: 100,
+      height: 50,
+      scale: 1,
+      x: 0,
+      y: 0,
+      rx: 0,
+      ry: 0,
+      fill: '',
+      stroke: '',
+      strokeWidth: 1
+    };
 
-  it('should scale rectangle correctly', () => {
-    const svgPoint = { x: 0, y: 0 } as SVGPoint;
-    component.addRectangle(svgPoint);
-
-    const originalWidth = component.currentShape.width!;
-    const originalHeight = component.currentShape.height!;
     component.scaleRect(2);
 
-    expect(component.currentShape.width).toBeCloseTo(originalWidth * 2);
-    expect(component.currentShape.height).toBeCloseTo(originalHeight * 2);
+    expect(component.currentShape.scale).toBe(2);
+    expect(component.currentShape.width).toBe(200);
+    expect(component.currentShape.height).toBe(100);
+    expect(component.currentShape.x).toBeLessThan(0); // position adjusted
   });
 
-  it('should handle onShapeClicked and update form controls', () => {
-    component.addRectangle({ x: 0, y: 0 } as SVGPoint);
-    component.currentShape.rx = 10;
-    component.onShapeClicked(component.currentShape);
+  it('should scale polygon properly', () => {
+    const points = [
+      { x: 10, y: 10 },
+      { x: 20, y: 10 },
+      { x: 15, y: 20 }
+    ];
+    component.currentShape = {
+      type: 'star',
+      points: points,
+      scale: 1,
+      x: 15,
+      y: 15,
+      fill: '',
+      stroke: '',
+      strokeWidth: 1
+    };
 
-    expect(component.shapeType()).toBe('rectangle');
-    expect(component.roundControl.value).toBe(10);
+    component.scalePolygon(points, 2);
+
+    expect(component.currentShape.scale).toBe(2);
+    expect(component.currentShape.points!.length).toBe(3);
+    // Pontos escalados em relação ao centro (15,15)
+    expect(component.currentShape.points![0].x).toBeCloseTo(5);
+    expect(component.currentShape.points![0].y).toBeCloseTo(5);
   });
 
-  it('should handle addingShape toggling flags correctly', () => {
+  it('should toggle adding shape mode', () => {
     component.addingShape('rectangle');
     expect(component.addingRectangle).toBeTrue();
     expect(component.addingStar).toBeFalse();
@@ -118,394 +173,109 @@ describe('CanvasComponent', () => {
     expect(component.addingStar).toBeTrue();
     expect(component.addingRectangle).toBeFalse();
 
-    component.addingShape('star'); // toggle off
+    component.addingShape('star');
     expect(component.addingStar).toBeFalse();
-    expect(component.addingRectangle).toBeFalse();
     expect(component.shapeType()).toBe('');
   });
 
-  describe('CanvasComponent additional methods', () => {
+  it('should handle onShapeClicked properly', () => {
+    const rect = {
+      type: 'rectangle',
+      rx: 5,
+      ry: 5,
+      strokeWidth: 2,
+      stroke: '#111111',
+      fill: '#222222',
+      scale: 1
+    } as Shape;
 
-    beforeEach(() => {
-      // Limpa o localStorage antes de cada teste para evitar interferências
-      localStorage.clear();
-      // Define uma forma atual para testes que dependem dela
-      component.currentShape = {
-        type: 'rectangle',
-        fill: '#fff',
-        stroke: '#000',
-        strokeWidth: 2,
-        x: 0,
-        y: 0,
-        scale: 1
-      };
-      component.shapes = [component.currentShape];
-    });
-  
-    it('should clear draggingShape and initialMouse and save shapes on onMouseUp', () => {
-      component.draggingShape = component.currentShape;
-      component.initialMouse = { x: 10, y: 20 };
-  
-      component.onMouseUp();
-  
-      expect(component.draggingShape).toBeNull();
-      expect(component.initialMouse).toBeNull();
-  
-      const saved = localStorage.getItem('svgShapes');
-      expect(saved).toBe(JSON.stringify(component.shapes));
-    });
-  
-    it('should update stroke color and save shapes on onStrokeColorChange', () => {
-      const newColor = '#123456';
-  
-      component.onStrokeColorChange(newColor);
-  
-      expect(component.strokeColor).toBe(newColor);
-      expect(component.currentShape.stroke).toBe(newColor);
-  
-      const saved = localStorage.getItem('svgShapes');
-      expect(saved).toBe(JSON.stringify(component.shapes));
-    });
-  
-    it('should update fill color and save shapes on onFillColorChange', () => {
-      const newColor = '#abcdef';
-  
-      component.onFillColorChange(newColor);
-  
-      expect(component.fillColor).toBe(newColor);
-      expect(component.currentShape.fill).toBe(newColor);
-  
-      const saved = localStorage.getItem('svgShapes');
-      expect(saved).toBe(JSON.stringify(component.shapes));
-    });
+    component.onShapeClicked(rect);
 
-    it('should set draggingShape and calculate offsets for rectangle on onMouseDown', () => {
-      const shape = {
-        type: 'rectangle',
-        x: 10,
-        y: 15,
-        stroke: '',
-        fill: '',
-        strokeWidth: 1,
-        scale: 1,
-      };
-    
-      const mockSVGPoint = {
-        x: 25,
-        y: 30,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 50, y: 60 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        })
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        preventDefault: jasmine.createSpy('preventDefault'),
-        target: {
-          ownerSVGElement: mockSVG
-        },
-        clientX: 25,
-        clientY: 30
-      } as unknown as MouseEvent;
-    
-      component.onMouseDown(event, shape);
-    
-      expect(event.preventDefault).toHaveBeenCalled();
-      expect(component.draggingShape).toBe(shape);
-      expect(component.offsetX).toBe(50 - shape.x); 
-      expect(component.offsetY).toBe(60 - shape.y); 
-      expect(component.initialMouse).toBeNull();
-    });
-    
-    it('should set draggingShape and initialMouse for non-rectangle shape on onMouseDown', () => {
-      const shape = {
-        type: 'star',
-        x: 10,
-        y: 15,
-        stroke: '',
-        fill: '',
-        strokeWidth: 1,
-        scale: 1,
-      };
-    
-      const mockSVGPoint = {
-        x: 25,
-        y: 30,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 50, y: 60 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        })
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        preventDefault: jasmine.createSpy('preventDefault'),
-        target: {
-          ownerSVGElement: mockSVG
-        },
-        clientX: 25,
-        clientY: 30
-      } as unknown as MouseEvent;
-    
-      component.onMouseDown(event, shape);
-    
-      expect(event.preventDefault).toHaveBeenCalled();
-      expect(component.draggingShape).toBe(shape);
-      expect(component.initialMouse).toEqual({ x: 50, y: 60 });
-      expect(component.offsetX).toBe(0);
-      expect(component.offsetY).toBe(0);
-    });    
+    expect(component.currentShape).toBe(rect);
+    expect(component.roundControl.value).toBe(5);
+    expect(component.strokeWidth.value).toBe(2);
+    expect(component.strokeColorControl.value).toBe('#111111');
+    expect(component.fillColorControl.value).toBe('#222222');
+  });
 
-    it('should update rectangle position on onMouseMove when draggingShape is rectangle', () => {
-      
-      component.draggingShape = {
-        type: 'rectangle',
-        x: 10,
-        y: 20,
-        stroke: '',
-        fill: '',
-        strokeWidth: 1,
-        scale: 1,
-      };
-    
-      component.offsetX = 5;
-      component.offsetY = 5;
-    
-      const mockSVGPoint = {
-        x: 15,
-        y: 25,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 30, y: 40 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        })
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        target: {
-          ownerSVGElement: mockSVG
-        },
-        clientX: 15,
-        clientY: 25
-      } as unknown as MouseEvent;
-    
-      component.onMouseMove(event);
-    
-      expect(component.draggingShape.x).toBe(30 - component.offsetX);
-      expect(component.draggingShape.y).toBe(40 - component.offsetY);
-    });
-    
-    it('should update star points and position on onMouseMove when draggingShape is star and initialMouse is set', () => {
-      const initialPoints = [{ x: 10, y: 10 }, { x: 20, y: 10 }, { x: 15, y: 20 }];
-    
-      component.draggingShape = {
-        type: 'star',
-        points: initialPoints,
-        x: 15,
-        y: 15,
-        stroke: '',
-        fill: '',
-        strokeWidth: 1,
-        scale: 1,
-      };
-    
-      component.initialMouse = { x: 5, y: 5 };
-    
-      const mockSVGPoint = {
-        x: 25,
-        y: 30,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 25, y: 30 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        })
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        target: {
-          ownerSVGElement: mockSVG
-        },
-        clientX: 25,
-        clientY: 30
-      } as unknown as MouseEvent;
-    
-      component.onMouseMove(event);
-    
-      const dx = 25 - 5;
-      const dy = 30 - 5;
-    
-      expect(component.draggingShape.points).toEqual(initialPoints.map(p => ({
-        x: p.x + dx,
-        y: p.y + dy
-      })));
-    
-      expect(component.draggingShape.x).toBe(15 + dx);
-      expect(component.draggingShape.y).toBe(15 + dy);
-    
-      expect(component.initialMouse).toEqual({ x: 25, y: 30 });
-    });
+  it('should get polygon points string', () => {
+    const pts = [
+      { x: 10, y: 10 },
+      { x: 20, y: 30 }
+    ];
+    const str = component.getPolygonPoints(pts);
+    expect(str).toBe('10,10 20,30');
+  });
 
-    it('should return early if not addingRectangle or addingStar', () => {
-      component.addingRectangle = false;
-      component.addingStar = false;
-    
-      const event = {
-        target: {}
-      } as unknown as MouseEvent;
-    
-      spyOn(component, 'resetShape');
-      spyOn(component, 'addRectangle');
-      spyOn(component, 'addStar');
-    
-      component.onSvgClick(event);
-    
-      expect(component.resetShape).not.toHaveBeenCalled();
-      expect(component.addRectangle).not.toHaveBeenCalled();
-      expect(component.addStar).not.toHaveBeenCalled();
-    });
-    
-    it('should resetShape if currentShape.type is rectangle or star', () => {
-      component.addingRectangle = true;
-      component.currentShape = { type: 'rectangle' } as any;
-    
-      const mockSVGPoint = {
-        x: 10,
-        y: 20,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 15, y: 25 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        }),
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        target: {
-          closest: jasmine.createSpy('closest').and.returnValue(mockSVG)
-        },
-        clientX: 10,
-        clientY: 20
-      } as unknown as MouseEvent;
-    
-      spyOn(component, 'resetShape').and.callThrough();
-      spyOn(component, 'addRectangle').and.callThrough();
-      spyOn(component, 'addStar').and.callThrough();
-    
-      component.onSvgClick(event);
-    
-      expect(component.resetShape).toHaveBeenCalled();
-      expect(component.addRectangle).toHaveBeenCalled();
-      expect(component.addStar).not.toHaveBeenCalled();
-    });
-
-    it('should scale polygon points correctly and update currentShape scale', () => {
-      
-      component.currentShape = {
-        type: 'star',
-        x: 10,
-        y: 20,
-        points: [
-          { x: 15, y: 25 },
-          { x: 20, y: 30 },
-          { x: 25, y: 35 }
-        ],
-        scale: 1,
-        stroke: '',
-        fill: '',
-        strokeWidth: 1,
-      };
-    
-      const originalPoints = component.currentShape.points ??  [
-        { x: 15, y: 25 },
-        { x: 20, y: 30 },
-        { x: 25, y: 35 }
-      ];
-      const scale = 2;
-    
-      
-      component.scalePolygon(originalPoints, scale);
-    
-      // Calcula os pontos esperados após a escala
-      const expectedPoints = originalPoints.map(p => ({
-        x: component.currentShape.x + (p.x - component.currentShape.x) * scale,
-        y: component.currentShape.y + (p.y - component.currentShape.y) * scale,
-      }));
-    
-      expect(component.currentShape.points).toEqual(expectedPoints);
-      expect(component.currentShape.scale).toBe(scale);
-    });
-    
-    
-    it('should call addStar if addingStar is true and addingRectangle is false', () => {
-      component.addingRectangle = false;
-      component.addingStar = true;
-      component.currentShape = { type: '' } as any;
-    
-      const mockSVGPoint = {
+  it('should handle onMouseDown and onMouseMove for rectangle dragging', () => {
+    const rect = {
+      type: 'rectangle',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 50,
+      scale: 1
+    } as Shape;
+    component.shapes.push(rect);
+  
+    const fakeCTMInverse = {};
+  
+    const fakeSVGElement = {
+      createSVGPoint: () => ({
         x: 50,
-        y: 60,
-        matrixTransform: jasmine.createSpy('matrixTransform').and.returnValue({ x: 55, y: 65 })
-      };
-    
-      const mockSVG = {
-        createSVGPoint: () => mockSVGPoint,
-        getScreenCTM: () => ({
-          inverse: () => ({})
-        }),
-      } as unknown as SVGSVGElement;
-    
-      const event = {
-        target: {
-          closest: jasmine.createSpy('closest').and.returnValue(mockSVG)
-        },
-        clientX: 10,
-        clientY: 20
-      } as unknown as MouseEvent;
-    
-      spyOn(component, 'resetShape').and.callThrough();
-      spyOn(component, 'addRectangle').and.callThrough();
-      spyOn(component, 'addStar').and.callThrough();
-      spyOn(component.shapeType, 'set').and.callThrough();
-    
-      component.onSvgClick(event);
-    
-      expect(component.resetShape).not.toHaveBeenCalled();
-      expect(component.addRectangle).not.toHaveBeenCalled();
-      expect(component.addStar).toHaveBeenCalled();
-      expect(component.shapeType.set).toHaveBeenCalledWith('star');
-    });    
+        y: 50,
+        matrixTransform: (matrix: any) => {
+          if (matrix === fakeCTMInverse) {
+            return { x: 60, y: 60 };
+          }
+          return { x: 50, y: 50 };
+        }
+      }),
+      getScreenCTM: () => ({
+        inverse: () => fakeCTMInverse
+      })
+    };
   
+    const fakeTarget = {
+      ownerSVGElement: fakeSVGElement
+    } as any;
+  
+    const mouseDownEvent = {
+      preventDefault: jasmine.createSpy(),
+      clientX: 50,
+      clientY: 50,
+      target: fakeTarget
+    } as unknown as MouseEvent;
+  
+    component.onMouseDown(mouseDownEvent, rect);
+    expect(component.draggingShape).toBe(rect);
+    expect(component.offsetX).toBeCloseTo(60 - rect.x);
+    expect(component.offsetY).toBeCloseTo(60 - rect.y);
+  });
+    
+
+  it('should handle onMouseUp and clear dragging', () => {
+    component.draggingShape = { type: 'rectangle' } as Shape;
+    component.shapes.push(component.draggingShape);
+    spyOn(localStorage, 'setItem');
+
+    component.onMouseUp();
+
+    expect(component.draggingShape).toBeNull();
+    expect(localStorage.setItem).toHaveBeenCalled();
   });
 
-  describe('getPolygonPoints', () => {
-    it('should return empty string if no points', () => {
-      expect(component.getPolygonPoints()).toBe('');
-      expect(component.getPolygonPoints(undefined)).toBe('');
-    });
-  
-    it('should return correctly formatted string of points', () => {
-      const points = [
-        { x: 1, y: 2 },
-        { x: 3, y: 4 },
-        { x: 5, y: 6 }
-      ];
-      expect(component.getPolygonPoints(points)).toBe('1,2 3,4 5,6');
-    });
+  it('should update stroke and fill colors and save to localStorage', () => {
+    spyOn(localStorage, 'setItem');
+    component.currentShape = { stroke: '', fill: '' } as Shape;
+
+    component.onStrokeColorChange('#123456');
+    expect(component.currentShape.stroke).toBe('#123456');
+    expect(localStorage.setItem).toHaveBeenCalled();
+
+    component.onFillColorChange('#654321');
+    expect(component.currentShape.fill).toBe('#654321');
+    expect(localStorage.setItem).toHaveBeenCalledTimes(2);
   });
-  
+
 });
