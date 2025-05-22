@@ -347,12 +347,15 @@ export class CanvasComponent implements OnInit{
       this.starPoints.setValue(this.currentShape.starPoints);
       this.starSlider.setValue(this.currentShape.starAngle);   
     }
+    
     this.strokeWidth.setValue(this.currentShape.strokeWidth);
     this.strokeColorControl.setValue(this.currentShape.stroke);
+    this.strokeColor = this.currentShape.stroke;
     this.fillColorControl.setValue(this.currentShape.fill);
+    this.fillColor = this.currentShape.fill;
     this.shapeScale.setValue(this.currentShape.scale);
     this.hasClickedShape = false;
-
+    
   }
 
   resetShape() {

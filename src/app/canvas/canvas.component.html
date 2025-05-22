@@ -61,12 +61,12 @@
                     </div>
                     <div class="flex-row">
                         <label class="mb-4">Cor da Borda</label>
-                        <input class="mb-8 ml-auto wth-125" formControlName="strokeColor" [(colorPicker)]="strokeColor"
+                        <input class="mb-8 ml-auto wth-125 no-text" formControlName="strokeColor" [(colorPicker)]="strokeColor"
                         (colorPickerChange)="onStrokeColorChange($event)" [style.background]="strokeColor" [cpOKButton]="true"/>
                     </div>
                     <div class="flex-row">
                         <label class="mb-4">Cor do Preenchimento</label>
-                        <input class="mb-8 ml-auto wth-125" formControlName="fillColor" [(colorPicker)]="fillColor"
+                        <input class="mb-8 ml-auto wth-125 no-text" formControlName="fillColor" [(colorPicker)]="fillColor"
                         (colorPickerChange)="onFillColorChange($event)" [style.background]="fillColor" [cpOKButton]="true"/>
                     </div>
                     <div class="flex-row">
