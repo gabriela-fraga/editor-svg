@@ -3,6 +3,7 @@ import { Component, effect, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Shape } from './shape';
 import { ColorPickerModule, ColorPickerService } from 'ngx-color-picker';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 export type Point = { x: number; y: number };
 
@@ -75,9 +76,21 @@ export class CanvasComponent implements OnInit{
       }
     });
 
-    this.starPoints.valueChanges.subscribe((val) => {
+    this.starPoints.valueChanges.pipe(
+      debounceTime(1000),
+      distinctUntilChanged()
+    ).subscribe((val) => {
+      let value = val;
       if(!this.hasClickedShape) {
-        this.currentShape.starPoints = val;
+        if (!val || val < 3) {
+          this.form.get('starPoints')?.setValue(3, { emitEvent: false });
+          value = 3;
+        }
+        if (!val || val > 20) {
+          this.form.get('starPoints')?.setValue(20, { emitEvent: false });
+          value = 20;
+        }
+        this.currentShape.starPoints = value;
         this.updateStar();
       }
     });
@@ -101,12 +114,18 @@ export class CanvasComponent implements OnInit{
       }
     });
 
-    this.strokeWidth.valueChanges.subscribe((val) => {
-      if (!this.hasClickedShape) {
-        const value = val ?? 0;
-        if (this.currentShape) {
-          this.currentShape.strokeWidth = value;
+    this.strokeWidth.valueChanges.pipe(
+      debounceTime(1000),
+      distinctUntilChanged()
+    ).subscribe((val) => {
+      let value = val;
+      if(!this.hasClickedShape) {
+        if (!val || val < 1) {
+          this.form.get('strokeWidth')?.setValue(1, { emitEvent: false });
+          value = 1;
         }
+        this.currentShape.strokeWidth = value;
+        this.updateStar();
         localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
       }
     });
@@ -451,4 +470,5 @@ export class CanvasComponent implements OnInit{
     this.currentShape.fill = color;
     localStorage.setItem('svgShapes', JSON.stringify(this.shapes));
   }
+  
 }
