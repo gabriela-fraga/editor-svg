@@ -210,6 +210,8 @@ export class CanvasComponent implements OnInit{
       type: 'rectangle',
       scale: 1
     };
+    this.fillColor = "#FFFFFF";
+    this.strokeColor = "#000000";
     this.shapes.push(newRect);
     this.currentShape = newRect;
     this.addingRectangle = false;
@@ -234,6 +236,8 @@ export class CanvasComponent implements OnInit{
       starAngle: 25
     };
   
+    this.fillColor = "#FFFFFF";
+    this.strokeColor = "#000000";
     this.shapes.push(newPolygon);
     this.currentShape = newPolygon;
     this.addingStar = false;
